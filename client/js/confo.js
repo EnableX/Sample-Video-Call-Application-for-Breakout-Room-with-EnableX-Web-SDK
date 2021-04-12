@@ -12,9 +12,10 @@
 var localStream = null;
 var username = null;
 var myClientId = null;
+var usersToInvite = [];
 var room, breakoutRoomId, breakedOutRoom;
 var awaitingParticipants;
-var SUPPORT_URL = "https://saas-portal-loknath.vcloudx.com/video_call/client/";
+var SUPPORT_URL = "https://enablex.io/";
 // Player Options
 var options = {
   id: "vcx_1001",
@@ -76,6 +77,7 @@ var countStream = 0;
   var localStreamId = null;
 
   var setLiveStream = function (stream, remote_name, client_id) {
+    // alert(client_id);
     if (stream.ifScreen()) {
       options.player.height = "inherit";
       options.player.width = "inherit";
@@ -153,7 +155,7 @@ var countStream = 0;
       newStreamDiv.appendChild(videoControls);
     }
 
-    stream.play("breakoutLiveStream_" + client_id, options);
+    stream.play("breakoutLiveStream_" + client_id, options, breakedOutRoom);
   };
 
 
@@ -256,12 +258,14 @@ window.onload = function () {
     localStream = EnxRtc.joinRoom(token, config, function (success, error) {
       if (error && error != null) {
       }
-      if (success && success != null) {
+      if (success && success != null) {        
         // $(".tools").show(); 
         room = success.room;
         var ownId = success.publishId;
         myClientId = room.clientId;
+        console.log("NEW ROOM ", room);
         if(room.waitRoom){
+          // alert('WAIT TO MODERATOR...');
           let roomSettings = room.roomSettings;
           let infoText = 'Wait for moderator to join...!';
           if(roomSettings.knock == true){
@@ -284,6 +288,11 @@ window.onload = function () {
         addAllEvenListners(room);
         refreshAwaitingList(room);
         refreshParticipantList(room);
+        console.log("USERLIST ....", room.userList);
+        room.userList.forEach(function (value, key) {
+          usersToInvite.push(key);
+        });
+
       }
     });
   });
@@ -300,6 +309,7 @@ function addAllEvenListners(room){
     // A new user connected. user JSON has user information
     console.log("new user conncted...", event, user);
     // alert('new user conncted...');
+    usersToInvite.push(event.clientId);
     refreshParticipantList(room);
   });
 
@@ -651,13 +661,15 @@ function addAllEvenListners(room){
     console.log('INVITATION DETAILS....', event);
     let breakoutRoomId = event.message.room_id;
     let joinBreakoutRoomButton = document.createElement('button');
-    joinBreakoutRoomButton.setAttribute('id', 'joinBreakutRoom');
-    joinBreakoutRoomButton.setAttribute('class', 'btn btn-sm btn-info');
-    joinBreakoutRoomButton.appendChild(document.createTextNode('Join Breakout Room'));
+    joinBreakoutRoomButton.setAttribute('id', 'joinroom_'+breakoutRoomId);
+    joinBreakoutRoomButton.setAttribute('class', 'btn btn-sm btn-success');
+    joinBreakoutRoomButton.appendChild(document.createTextNode('Join '+breakoutRoomId));
     joinBreakoutRoomButton.breakoutRoomId = breakoutRoomId;
     joinBreakoutRoomButton.addEventListener('click', joinBreakoutRoom, false);
-    document.getElementById('breakoutButtons').innerHTML = '';
-    document.getElementById('breakoutButtons').appendChild(joinBreakoutRoomButton);
+    // document.getElementById('breakoutButtons').innerHTML = '';
+    if(!document.getElementById('breakoutButtons').contains(document.getElementById('joinroom_'+breakoutRoomId))){
+      document.getElementById('breakoutButtons').appendChild(joinBreakoutRoomButton);
+    }
     // document.getElementById('breakoutCreateButtons').style.display = 'none';
     isToolVisible = false;
     toggleTools();
@@ -671,7 +683,15 @@ function addAllEvenListners(room){
   });
 
   room.addEventListener("breakout-room-destroyed", function (event) {
-    // console.log('Destroyed from breakout room....');
+    // console.log('Destroyed from breakout room....', event);
+    let roomId = event.message.room_id;
+    // alert('BR destroyed.....', roomId);
+    if (document.contains(document.getElementById("room_"+roomId))) {
+      document.getElementById("room_"+roomId).remove();
+    }
+    if (document.contains(document.getElementById("joinroom_"+roomId))) {
+      document.getElementById("joinroom_"+roomId).remove();
+    }
   });
   //ADDED FOR BRAKOUT FEATURE********************************************************************
 }
@@ -1127,13 +1147,36 @@ function breakoutRoom(){
     console.log('Breakout Room Data....', bRomData)
     if(bRomData.result == 0){
       breakoutRoomId = bRomData.msg.rooms[0];
-      document.getElementById('breakout_btn').style.display = 'none';
-      document.getElementById('invite_btn').style.display = 'block';
+      // document.getElementById('breakout_btn').style.display = 'none';
+      // document.getElementById('invite_btn').style.display = 'block';
+
+      let joinRoomButton = document.createElement('button');
+      joinRoomButton.appendChild(document.createTextNode("Join "+breakoutRoomId));
+      // joinRoomButton.setAttribute('id', breakoutRoomId);
+      joinRoomButton.setAttribute('class', 'btn btn-sm btn-success');
+      joinRoomButton.breakoutRoomId = breakoutRoomId;
+      joinRoomButton.addEventListener('click', joinBreakoutRoom, false);
+
+      let inviteRoomButton = document.createElement('button');
+      inviteRoomButton.appendChild(document.createTextNode('Invite'));
+      // joinRoomButton.setAttribute('id', breakoutRoomId);
+      inviteRoomButton.setAttribute('class', 'btn btn-sm btn-info');
+      inviteRoomButton.breakoutRoomId = breakoutRoomId;
+      inviteRoomButton.addEventListener('click', ShowInviteeList, false);
+
+      let bRoomContainer = document.createElement('div');
+      bRoomContainer.setAttribute('id', "room_"+breakoutRoomId);
+      bRoomContainer.appendChild(joinRoomButton)
+      bRoomContainer.appendChild(inviteRoomButton)
+
+      document.getElementById('breakoutRooms').appendChild(bRoomContainer);
     }
   });
 }
 
-function ShowInviteeList(){
+function ShowInviteeList(event){
+  console.log('EVENT.....', event);
+  bRoomId = event.target.breakoutRoomId;
   toggleTools();
   document.getElementById('inviteeContainer').style.display = 'block';
     console.log('ROOM USER LIST.....', room.userList);
@@ -1143,8 +1186,8 @@ function ShowInviteeList(){
     heading.appendChild(document.createTextNode("Choose Participant"));
     listContainer.appendChild(heading)
     room.userList.forEach((value, key) => {      
-      if(room.me.clientId != key){
-        
+      // if(room.me.clientId != key && usersToInvite.indexOf(key) != -1){        
+      if(room.me.clientId != key ){        
         let eachParticipant = document.createElement('div');
         let chechbox = document.createElement('input');
         chechbox.setAttribute('type', 'checkbox');
@@ -1160,15 +1203,19 @@ function ShowInviteeList(){
     inviteButton.setAttribute('class', 'btn btn-sm btn-success');
     inviteButton.setAttribute('id', 'inviteNow');
     inviteButton.appendChild(document.createTextNode('Invite'));
-    inviteButton.addEventListener('click', inviteParticipants);
+    inviteButton.breakoutRoomId = bRoomId;
+    inviteButton.addEventListener('click', inviteParticipants, false);
     listContainer.appendChild(inviteButton);
 }
 
-function inviteParticipants(){
+function inviteParticipants(event){
+  console.log('EVENT.....', event);
+  bRoomId = event.target.breakoutRoomId;
   // alert('Invite');
   let clients = [];
   document.querySelectorAll('.invitee').forEach(invitee => {
     if(invitee.checked){
+      //usersToInvite.splice(usersToInvite.indexOf(invitee.value), 1);
       clients.push(invitee.value);
     }
   });
@@ -1179,15 +1226,14 @@ function inviteParticipants(){
 
   let inviteData = {
     clients,
-    room_id : breakoutRoomId
+    room_id : bRoomId
   }
   room.inviteToBreakoutRoom(inviteData, function(inviteResult) {
     console.log("Invite Result ...... ", inviteResult);
     if(inviteResult.result == 0){
-      document.getElementById('inviteNow').removeEventListener('click', inviteParticipants);
+      document.getElementById('inviteNow').removeEventListener('click', inviteParticipants, false);
       document.getElementById('inviteNow').remove();
       document.getElementById('inviteeContainer').style.display = 'none'; 
-      handleBreakoutRoomJoining(breakoutRoomId);
     }
   });
 
@@ -1199,8 +1245,8 @@ function joinBreakoutRoom(event){
   breakoutRoomId = event.target.breakoutRoomId;
   // alert('Join now .. '+ breakoutRoomId);
   handleBreakoutRoomJoining(breakoutRoomId); 
-  document.getElementById('joinBreakutRoom').removeEventListener('click', joinBreakoutRoom);
-  document.getElementById('joinBreakutRoom').remove();
+  // document.getElementById('joinBreakutRoom').removeEventListener('click', joinBreakoutRoom);
+  // document.getElementById('joinBreakutRoom').remove();
   toggleTools();
 }
 
@@ -1322,7 +1368,7 @@ function handleBreakoutRoomJoining(breakoutRoomId){
       // unmuteParentRoom();
       resumeParentRoom();
       document.getElementById('breakout_btn').style.display = 'block';
-      document.getElementById('invite_btn').style.display = 'none';
+      // document.getElementById('invite_btn').style.display = 'none';
     });
     
     

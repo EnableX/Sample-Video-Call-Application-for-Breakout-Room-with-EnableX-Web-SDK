@@ -25,10 +25,10 @@
             position: absolute;
             border: 1px solid #000;
             bottom: 48px;
-            left: 50%;
+            left: 45%;
             padding: 10px;
             display:none;
-            width: 280px;
+            width: 300px;
             text-align: left;
             background-color: #fff;
         }
@@ -53,7 +53,7 @@
             text-align: center;
             border: 1px solid;
             padding: 16px;
-            margin: 50% auto;
+            margin: 10% auto;
         }
 
         .invitee_list{
@@ -78,7 +78,7 @@
             position: absolute;
         }
         #breakoutRoom{
-            width: 80%;
+            /* width: 80%; */
             height: auto;
             float: left;
             position: relative;
@@ -112,7 +112,7 @@
 <body>
 <div class="container-fluid">
 
-    <div class="" style="width: 100%;height:100%; min-height: 600px;">
+    <div class="" style="width: 100%; ">
         <div id="info_container" style="display: none;">
             <h4>Wait moderator to join....</h4>
         </div>
@@ -191,7 +191,10 @@
                 <div id="breakoutCreateButtons">
                     <button class="btn btn-sm btn-info" id="breakout_btn" onclick="breakoutRoom()">Breakout Room</button>
 
-                    <button class="btn btn-sm btn-info" id="invite_btn" onclick="ShowInviteeList()" style="display: none;">Invite Participants</button>
+                    <!-- <button class="btn btn-sm btn-info" id="invite_btn" onclick="ShowInviteeList()" style="display: none;">Invite Participants</button> -->
+                </div>
+                <div id="breakoutRooms">
+
                 </div>
 
                 <div id="breakoutButtons"></div>
